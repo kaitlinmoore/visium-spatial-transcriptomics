@@ -59,9 +59,8 @@ numpy, pandas, matplotlib, pytest. All ship Linux wheels on PyPI; no conda.
   obsp["spatial_connectivities"] into a libpysal weights object so the global and
   local statistics share one matrix. Row-standardize (transform="r") for analytic
   p-values.
-- Validate the owned statistic: moran_scratch.py must reproduce squidpy's and
-  esda's global Moran's I on the same weights, within tolerance, before the local
-  layer is trusted. This is the defensibility check, not decoration.
+- Validate: moran_scratch.py must reproduce squidpy's and esda's global Moran's I
+  on the same weights, within tolerance, before the local layer is trusted.
 - Rank spatially variable genes by global Moran's I first, then run LISA/Gi* only on
   the top set.
 - Multiple testing is real: many spots x many genes. Correct per-spot p-values
@@ -72,5 +71,5 @@ numpy, pandas, matplotlib, pytest. All ship Linux wheels on PyPI; no conda.
 - Image is an aligned backdrop only. Overlay hotspots on the H&E via the
   scalefactor; do NOT extract image features (that is a deferred stretch goal).
 - Check whether High-High LISA clusters for known markers recover known compartments
-  (e.g. B-cell follicle markers -> follicles,   T-zone markers -> paracortex).
-  Cite marker sources; don't assert.
+  (e.g. B-cell follicle markers -> follicles, T-zone markers -> paracortex). Cite
+  marker sources; don't assert.
