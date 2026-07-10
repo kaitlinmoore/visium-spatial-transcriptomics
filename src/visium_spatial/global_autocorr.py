@@ -21,25 +21,63 @@ Alternatives considered:
 
 from __future__ import annotations
 
+import numpy as np
+import squidpy as sq
+
+CONNECTIVITIES_KEY = "spatial_connectivities"
+
+
+def _corrected_pval_col(df) -> str:
+    """The multiple-testing-corrected p-value column squidpy wrote.
+
+    squidpy names it ``pval_<norm|sim>_fdr_bh`` depending on ``n_perms``; fall
+    back to the raw ``pval_*`` column if no corrected one is present.
+    """
+    for col in df.columns:
+        if col.endswith("_fdr_bh"):
+            return col
+    for col in df.columns:
+        if col.startswith("pval"):
+            return col
+    raise KeyError(f"no p-value column in {list(df.columns)}")
+
 
 def rank_svgs(adata, *, genes=None, n_perms: int | None = None, seed: int = 0):
     """Score genes by global Moran's I and return them ranked.
 
     Wraps ``sq.gr.spatial_autocorr(adata, mode="moran", ...)`` on the graph built
     by build_graph.py. ``genes=None`` scores all; pass a list to restrict.
+    ``n_perms=None`` uses squidpy's analytic (normal) p-values; an int uses the
+    permutation null.
 
     Returns
     -------
     pandas.DataFrame
-        Per-gene Moran's I, p-values, and rank, sorted by I descending.
+        Per-gene Moran's I, p-values (raw + BH-corrected across the tested genes),
+        and an integer ``rank``, sorted by I descending.
     """
-    raise NotImplementedError
+    if CONNECTIVITIES_KEY not in adata.obsp:
+        raise ValueError(
+            f'no spatial graph in obsp["{CONNECTIVITIES_KEY}"]; '
+            "run build_graph.build_spatial_graph first"
+        )
+
+    genes = list(adata.var_names) if genes is None else list(genes)
+    sq.gr.spatial_autocorr(adata, mode="moran", genes=genes, n_perms=n_perms, seed=seed)
+
+    ranked = adata.uns["moranI"].sort_values("I", ascending=False).copy()
+    ranked["rank"] = np.arange(1, len(ranked) + 1)
+    return ranked
 
 
 def top_genes(ranked, *, n: int = 20, max_pval: float | None = 0.05):
     """Select the top-``n`` spatially variable genes to localize.
 
-    Filters on the (corrected) global p-value first when ``max_pval`` is set,
-    then takes the ``n`` highest-I genes.
+    Filters on the BH-corrected global p-value first when ``max_pval`` is set (so
+    the shortlist controls the false-discovery rate across genes), then takes the
+    ``n`` highest-I genes.
     """
-    raise NotImplementedError
+    df = ranked
+    if max_pval is not None:
+        df = df[df[_corrected_pval_col(df)] <= max_pval]
+    return df.sort_values("I", ascending=False).head(n)
