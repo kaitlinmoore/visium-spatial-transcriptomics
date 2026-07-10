@@ -1,2 +1,117 @@
-# visium-spatial-transcriptomics
-Analyze a human lymph node 10x Visium section with spatial statistics and with neighborhood enrichment as a secondary tissue-architecture method. 
+# visium-spatial-statistics
+
+Global-to-local spatial autocorrelation of a human lymph node 10x Visium section.
+
+## What this is
+
+A spatial-statistics analysis of a single human lymph node Visium slide. The headline is spatial autocorrelation taken from the global statistic (Moran's I) down to **local** indicators (local Moran's I / LISA and Getis-Ord Gi\*) computed on the same spatial weights graph, with the resulting hotspots overlaid on the aligned H&E and checked against known immune-compartment architecture. Neighborhood enrichment across clusters is a secondary, tissue-architecture read-out.
+
+This is an analysis / inference project, not a predictive one. The point is methodology: constructing the spatial weights graph correctly, making the global→local move that a standard spatial-transcriptomics pipeline stops short of, running permutation inference with disciplined multiple testing, and validating hotspots against tissue structure rather than asserting them.
+
+The spatial statistics here are the same family used in GIS: the Visium spot graph *is* a spatial weights matrix, Moran's I is the same statistic, and the LISA quadrant interpretation is identical, using spots instead of polygons, a gene instead of a socioeconomic variable. The local indicators are the part squidpy does not provide out of the box. They come from the PySAL toolkit (`esda`/`libpysal`).
+
+**Biological framing.** A lymph node has crisp, well-separated compartments (B-cell follicles and germinal centers, the T-cell paracortex, sinuses). If the spatial statistics are working, the High-High LISA clusters for compartment markers should recover that architecture, showing follicle markers over the follicles, T-zone markers over the paracortex. That recovery is the validation, and should be checked against literature markers with sources, not eyeballed.
+
+## Data
+
+Single Visium section. This is a coordinate grid, not a sequence-alignment problem. Raw data is gitignored. The table below is the provenance record, filled in at download.
+
+| Field | Value |
+|---|---|
+| Dataset ID | `V1_Human_Lymph_Node` |
+| Assay | 10x Visium (spatial gene expression) |
+| Source | `squidpy.datasets.visium` / 10x Genomics datasets portal — `<URL>` |
+| Space Ranger version | `<...>` |
+| Reference transcriptome | `<...>` (the 10x reference the counts were generated against, e.g. a GRCh38 build — provenance only; the analysis does not use it) |
+| Spots (post-QC) | `<...>` |
+| Genes | `<...>` |
+| Images | `tissue_hires_image.png`, `tissue_lowres_image.png`, `scalefactors_json.json` |
+| Access date | `<...>` |
+
+A pre-processed built-in dataset, `squidpy.datasets.visium_hne_adata()`, is wired in as a **smoke-test path** so the pipeline runs end to end on a fresh clone before the lymph node section is downloaded (see *How to run*).
+
+## Environment & setup
+
+Runs under WSL2 (Ubuntu). Dependencies are uv-managed (`pyproject.toml` + committed `uv.lock`), Python 3.11.
+
+```bash
+uv sync
+```
+
+Core stack: `squidpy`, `scanpy`, `anndata` (assay + graph + enrichment), `esda`, `libpysal` (local spatial statistics), `leidenalg`, `igraph` (clustering), plus `numpy`/`pandas`/`matplotlib`/`pytest`. All from PyPI wheels; no conda.
+
+### Project layout
+
+```
+visium-spatial-statistics/
+  data/                        # gitignored: Space Ranger output (matrix, spatial/, images), derived AnnData
+  src/
+    visium_spatial/            # importable package (installed editable by `uv sync`)
+      __init__.py              # pipeline map; imports stay lazy so squidpy/esda load only when used
+      load_visium.py           # sq.read.visium wrapper + coordinate/scalefactor extraction and checks
+      qc.py                    # spot/gene QC and filtering
+      preprocess.py            # normalize_total + log1p + HVG (scanpy)
+      cluster.py               # neighbors + Leiden (compartment proxy)
+      moran_scratch.py         # from-scratch global Moran's I (owned core; validated vs squidpy + esda)
+      build_graph.py           # sq.gr.spatial_neighbors (hex) + squidpy->libpysal weights bridge (owned core)
+      global_autocorr.py       # sq.gr.spatial_autocorr wrapper -> ranked spatially variable genes
+      local_autocorr.py        # esda LISA (Moran_Local) + Getis-Ord Gi* (G_Local) on the shared graph
+      multitest.py             # FDR within a gene; isolate/island handling (owned core)
+      overlay.py               # hotspot maps overlaid on the aligned H&E (scalefactor-aware)
+  notebooks/
+    eda.ipynb                  # QC, coordinate + scalefactor sanity, clustering (+ smoke-test cell)
+    autocorr.ipynb             # global -> local autocorrelation, hotspot overlays
+    nhood.ipynb                # neighborhood enrichment, compartment adjacency
+  tests/                       # pytest against committed synthetic fixtures
+    conftest.py                # shared fixtures over the synthetic AnnData
+    fixtures/                  # tiny synthetic Visium-like AnnData builder + scalefactors.json
+  docs/methodology.md
+  README.md
+  CLAUDE.md
+  pyproject.toml               # uv-managed; hatchling build backend
+  uv.lock                      # committed
+  LICENSE                      # MIT
+```
+
+## How to run
+
+**1. Smoke test — no download.** Runs the graph build and global Moran's I against the built-in dataset, to confirm the environment and the owned code work on a fresh clone. The first cell of `notebooks/eda.ipynb` loads `visium_hne_adata()` and passes it through `visium_spatial.build_graph` and `visium_spatial.global_autocorr`.
+
+**2. Real analysis — after downloading the lymph node section** (see *Data* and the action items in the planning package):
+
+```bash
+uv run jupyter lab
+```
+
+Then run the notebooks in order:
+
+1. `notebooks/eda.ipynb` — load via `sq.read.visium`, QC, and the coordinate + scalefactor sanity checks (the pre-check that the overlay will align).
+2. `notebooks/autocorr.ipynb` — global Moran's I ranking (validated against the from-scratch implementation), then LISA + Gi\* on the top-ranked genes, FDR correction, and hotspot overlays on the aligned H&E with the compartment-recovery check.
+3. `notebooks/nhood.ipynb` — Leiden clustering as a compartment proxy, then neighborhood enrichment across clusters.
+
+The `visium_spatial` package is installed editable by `uv sync`, so the notebooks just `from visium_spatial.build_graph import …`; the notebooks orchestrate the modules.
+
+## Method summary
+
+- **One shared weights matrix.** The Visium spatial graph is built once with `sq.gr.spatial_neighbors` on the hexagonal grid (`coord_type="grid"`, `n_neighs=6`) and bridged into a `libpysal` weights object, so the global (squidpy) and local (esda) statistics run on the *same* matrix. Row-standardized for analytic p-values.
+- **Global as the cheap gate, local as the deliverable.** Genes are ranked by global Moran's I first; LISA/Gi\* run only on the top set. Cheap signal first, the expensive per-spot pass conditioned on hits.
+- **Owned statistic, validated.** A from-scratch global Moran's I (weights matrix, row-standardization, the I formula, a permutation null) is the whiteboard-defensible core; it is checked against both squidpy and esda on the same weights before the local layer is trusted.
+- **Multiple testing and isolates are first-class.** Per-spot p-values are FDR-corrected within a gene; comparison across genes is treated cautiously. Spots with no neighbors (tissue-boundary isolates) are handled explicitly and reported, never dropped silently.
+- **Image as an aligned backdrop.** Hotspots are overlaid on the hires H&E by applying `tissue_hires_scalef` to the full-resolution pixel coordinates in `obsm["spatial"]`. No image-feature extraction — the histology is a registered background, not a data source.
+
+Full rationale, the spatial-graph-as-weights-matrix crossover, the validation, and the coordinate/scalefactor hygiene are in [`docs/methodology.md`](docs/methodology.md).
+
+## Results
+
+_Populated after the local runs._ This section will carry: the QC and coordinate/scalefactor sanity summary; the global Moran's I ranking with the from-scratch validation note; the LISA and Gi\* hotspot maps overlaid on the H&E; the compartment-recovery check against markers; and the neighborhood-enrichment adjacency read-out.
+
+## Limitations & scope
+
+- **Single section.** Cross-section reproducibility (running a second lymph node slide and checking whether the same-marker hotspots reproduce) is a stretch, not part of v1.
+- **Spot-level resolution.** Visium spots are multi-cell; nothing here is single-cell, and "compartment" is a spatial-domain notion, not a segmentation.
+- **Recovery is qualitative validation.** The compartment-recovery claim is checked against literature markers, not against a segmentation ground truth — it is evidence the statistics behave, not a benchmarked accuracy.
+- **No image analysis in v1.** The H&E is a backdrop; morphology features are a deferred stretch.
+
+## License
+
+MIT.

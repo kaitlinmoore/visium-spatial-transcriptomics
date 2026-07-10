@@ -1,0 +1,42 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "visium-spatial-statistics"
+version = "0.0.0"
+description = "Global-to-local spatial autocorrelation of a human lymph node 10x Visium section."
+readme = "README.md"
+requires-python = ">=3.11,<3.12"
+license = { text = "MIT" }
+authors = [{ name = "Kaitlin Moore" }]
+
+# Core scientific stack. All ship Linux wheels on PyPI (project runs under
+# WSL2/Ubuntu per CLAUDE.md); no conda. Versions are left to the resolver and
+# pinned in the committed uv.lock (`uv sync` / `uv lock`).
+dependencies = [
+    "squidpy",     # assay handling, spatial graph, neighborhood enrichment
+    "scanpy",      # QC, normalization, neighbors + Leiden
+    "anndata",     # the data container
+    "esda",        # local spatial statistics (Moran_Local / G_Local)
+    "libpysal",    # spatial weights object bridged from squidpy's graph
+    "leidenalg",   # Leiden community detection backend
+    "igraph",      # graph backend for clustering
+    "numpy",
+    "pandas",
+    "matplotlib",
+]
+
+[dependency-groups]
+dev = [
+    "pytest",
+    "jupyterlab",  # `uv run jupyter lab` for the notebooks
+]
+
+# The importable package (visium_spatial) differs from the distribution name
+# (visium-spatial-statistics), so point hatchling at it explicitly.
+[tool.hatch.build.targets.wheel]
+packages = ["src/visium_spatial"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]       # package installed editable by `uv sync`; no path hack

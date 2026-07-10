@@ -1,0 +1,42 @@
+# --- Raw & derived data (never in git) ---------------------------------------
+# Space Ranger output, downloaded sections, and any derived AnnData.
+data/
+*.h5
+*.h5ad
+*.loom
+*.mtx
+*.mtx.gz
+*.zarr/
+
+# --- Images, whole-slide & tile formats --------------------------------------
+# The H&E is an aligned backdrop, not tracked source. Includes tile pyramids.
+*.png
+*.jpg
+*.jpeg
+*.tif
+*.tiff
+*.svs
+*.ndpi
+*.scn
+*.btf
+*.dzi
+
+# --- Python ------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+
+# --- Environments / uv (uv.lock IS committed) --------------------------------
+.venv/
+venv/
+.python-version
+
+# --- OS / editor -------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
