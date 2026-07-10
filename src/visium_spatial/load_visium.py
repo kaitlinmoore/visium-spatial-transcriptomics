@@ -45,16 +45,39 @@ def load_visium(outs_dir: str | Path, *, count_file: str = "filtered_feature_bc_
     -------
     anndata.AnnData
     """
-    raise NotImplementedError
+    import squidpy as sq
+
+    outs_dir = Path(outs_dir)
+    if not outs_dir.exists():
+        raise FileNotFoundError(f"Space Ranger outs dir not found: {outs_dir}")
+
+    adata = sq.read.visium(outs_dir, counts_file=count_file)
+    # Record the coordinate frame explicitly (the one irreversible fact), then
+    # verify it before returning so a malformed read fails here, not downstream.
+    adata.uns["spatial_frame"] = SPATIAL_FRAME
+    assert_spatial_frame(adata)
+    return adata
 
 
 def extract_scalefactors(adata) -> dict:
     """Return the Visium scalefactors as a plain ``dict`` of floats.
 
-    Keys: ``spot_diameter_fullres``, ``tissue_hires_scalef``,
-    ``tissue_lowres_scalef``, ``fiducial_diameter_fullres``.
+    Reads squidpy's ``uns["spatial"][library_id]["scalefactors"]`` layout. Keys:
+    ``spot_diameter_fullres``, ``tissue_hires_scalef``, ``tissue_lowres_scalef``,
+    ``fiducial_diameter_fullres``.
     """
-    raise NotImplementedError
+    spatial = adata.uns.get("spatial")
+    if not spatial:
+        raise ValueError('adata.uns["spatial"] missing; not a squidpy-read Visium AnnData')
+
+    libraries = list(spatial.keys())
+    if len(libraries) != 1:
+        raise ValueError(f"expected exactly one Visium library, found {libraries}")
+
+    scalefactors = spatial[libraries[0]].get("scalefactors")
+    if scalefactors is None:
+        raise ValueError(f'no scalefactors under uns["spatial"]["{libraries[0]}"]')
+    return {key: float(value) for key, value in scalefactors.items()}
 
 
 def assert_spatial_frame(adata) -> None:
@@ -63,4 +86,17 @@ def assert_spatial_frame(adata) -> None:
     A guard, not a transform: catches the silent-bug class where coordinates are
     absent, in the wrong units, or of the wrong shape before any statistic runs.
     """
-    raise NotImplementedError
+    if "spatial" not in adata.obsm:
+        raise ValueError('adata.obsm["spatial"] is missing; no spatial coordinates')
+
+    xy = adata.obsm["spatial"]
+    if xy.ndim != 2 or xy.shape[1] != 2:
+        raise ValueError(f'obsm["spatial"] must be (n, 2); got shape {xy.shape}')
+    if xy.shape[0] != adata.n_obs:
+        raise ValueError(
+            f'obsm["spatial"] has {xy.shape[0]} rows but n_obs is {adata.n_obs}'
+        )
+
+    frame = adata.uns.get("spatial_frame")
+    if frame != SPATIAL_FRAME:
+        raise ValueError(f'uns["spatial_frame"] must be {SPATIAL_FRAME!r}; got {frame!r}')
