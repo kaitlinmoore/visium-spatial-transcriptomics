@@ -32,34 +32,63 @@ global permutation null; kept as the default.
 
 from __future__ import annotations
 
+import numpy as np
+from esda.getisord import G_Local
+from esda.moran import Moran_Local
+
 # LISA quadrant codes as returned by esda.Moran_Local.q
 QUADRANT_LABELS = {1: "HH", 2: "LH", 3: "LL", 4: "HL"}
 
 
-def local_moran(x, W, *, n_perm: int = 999, seed: int = 0):
+def local_moran(x, W, *, n_perm: int = 999, seed: int = 0, island_weight: float = 0.0):
     """Local Moran's I / LISA for one gene's values ``x`` on weights ``W``.
 
-    Thin wrapper over ``esda.Moran_Local``. Returns the fitted object exposing
-    per-spot ``Is``, quadrant codes ``q``, and pseudo p-values ``p_sim``.
+    Thin wrapper over ``esda.Moran_Local`` (the statistic is PySAL's, not ours).
+    Returns the fitted object exposing per-spot ``Is``, quadrant codes ``q``, and
+    pseudo p-values ``p_sim``. ``seed`` makes the conditional-permutation
+    p-values reproducible.
+
+    ``island_weight`` is passed to esda as the explicit isolate policy (a visible
+    choice, per CLAUDE.md). Note it does NOT prevent isolates from getting a
+    spurious significant label — that is handled by masking their p-values via
+    ``multitest.mask_isolates`` before FDR.
     """
-    raise NotImplementedError
+    x = np.asarray(x, dtype=float)
+    return Moran_Local(x, W, permutations=n_perm, seed=seed, island_weight=island_weight)
 
 
-def lisa_quadrants(local_moran_result, *, p_thresh: float = 0.05, labels=None):
-    """Map an esda LISA result to per-spot quadrant labels.
+def lisa_quadrants(local_moran_result, *, p_thresh: float = 0.05, pvals=None):
+    """Map an esda LISA result to per-spot quadrant labels. The owned seam.
 
-    Spots whose (already FDR-corrected) p-value exceeds ``p_thresh`` are labeled
-    ``"ns"`` (not significant); the rest get HH/LH/LL/HL from
-    :data:`QUADRANT_LABELS`. Pass corrected p-values via ``labels``/upstream so
-    this stays a pure sign/threshold map that is easy to unit-test.
+    A pure sign/threshold map: a spot significant at ``p_thresh`` gets its
+    HH/LH/LL/HL label from :data:`QUADRANT_LABELS`; everything else is ``"ns"``
+    (not significant). Keeping it a pure function of (quadrant, p-value) is what
+    makes it unit-testable without running esda.
+
+    By default it reads ``result.p_sim``. Pass FDR-corrected p-values via
+    ``pvals`` to gate on the multiple-testing-corrected significance instead —
+    this is the plug point for ``multitest.fdr_within_gene``. NaN p-values
+    (islands with no defined lag) fall through to ``"ns"``.
     """
-    raise NotImplementedError
+    q = np.asarray(local_moran_result.q)
+    p = np.asarray(local_moran_result.p_sim if pvals is None else pvals, dtype=float)
+
+    labels = np.empty(q.shape[0], dtype=object)
+    for i in range(q.shape[0]):
+        significant = p[i] <= p_thresh  # NaN -> False -> "ns"
+        labels[i] = QUADRANT_LABELS.get(int(q[i]), "ns") if significant else "ns"
+    return labels
 
 
-def getis_ord_gi(x, W, *, star: bool = True, n_perm: int = 999, seed: int = 0):
+def getis_ord_gi(
+    x, W, *, star: bool = True, n_perm: int = 999, seed: int = 0, island_weight: float = 0.0
+):
     """Getis-Ord Gi* hotspot statistic for ``x`` on ``W`` (``esda.G_Local``).
 
-    ``star=True`` includes the focal spot (Gi*). Returns the fitted object with
-    per-spot z-scores and pseudo p-values.
+    Thin wrapper. ``star=True`` includes the focal spot (Gi* vs Gi). Returns the
+    fitted object with per-spot z-scores ``Zs`` and pseudo p-values ``p_sim``.
+    ``island_weight`` is the explicit isolate policy passed to esda (see
+    :func:`local_moran`).
     """
-    raise NotImplementedError
+    x = np.asarray(x, dtype=float)
+    return G_Local(x, W, star=star, permutations=n_perm, seed=seed, island_weight=island_weight)
