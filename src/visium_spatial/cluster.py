@@ -21,6 +21,11 @@ from __future__ import annotations
 def leiden_clusters(adata, *, resolution: float = 1.0, n_neighbors: int = 15, key_added: str = "leiden"):
     """Run expression-space neighbors + Leiden; store labels in ``obs[key_added]``.
 
-    Note: expression graph, not spatial. See module docstring.
+    Note: this is the EXPRESSION kNN graph (``sc.pp.neighbors``), not the spatial
+    weights graph from build_graph.py. See module docstring.
     """
-    raise NotImplementedError
+    import scanpy as sc
+
+    sc.pp.neighbors(adata, n_neighbors=n_neighbors)
+    sc.tl.leiden(adata, resolution=resolution, key_added=key_added)
+    return adata

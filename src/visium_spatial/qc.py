@@ -21,20 +21,37 @@ from __future__ import annotations
 def compute_qc_metrics(adata):
     """Annotate ``adata`` with per-spot and per-gene QC metrics (in place).
 
-    Wraps ``scanpy.pp.calculate_qc_metrics`` plus a mitochondrial-fraction column.
+    Wraps ``scanpy.pp.calculate_qc_metrics`` plus a mitochondrial flag/fraction
+    (genes named ``MT-*``). ``percent_top=None`` so it works regardless of how
+    many genes are present.
     """
-    raise NotImplementedError
+    import scanpy as sc
+
+    adata.var["mt"] = adata.var_names.str.upper().str.startswith("MT-")
+    sc.pp.calculate_qc_metrics(adata, qc_vars=["mt"], percent_top=None, inplace=True)
+    return adata
 
 
 def filter_spots(adata, *, min_counts: int = 500, min_genes: int = 250, max_pct_mito: float = 30.0):
-    """Return a view/copy of ``adata`` with low-quality spots removed.
+    """Return a copy of ``adata`` with low-quality spots removed.
 
     Thresholds are explicit arguments so they land in the notebook record, not a
-    hidden default.
+    hidden default. Metrics are computed first if absent.
     """
-    raise NotImplementedError
+    if "total_counts" not in adata.obs or "pct_counts_mt" not in adata.obs:
+        compute_qc_metrics(adata)
+
+    keep = (
+        (adata.obs["total_counts"] >= min_counts)
+        & (adata.obs["n_genes_by_counts"] >= min_genes)
+        & (adata.obs["pct_counts_mt"] <= max_pct_mito)
+    )
+    return adata[keep.values].copy()
 
 
 def filter_genes(adata, *, min_spots: int = 10):
-    """Drop genes detected in fewer than ``min_spots`` spots."""
-    raise NotImplementedError
+    """Drop genes detected in fewer than ``min_spots`` spots (in place)."""
+    import scanpy as sc
+
+    sc.pp.filter_genes(adata, min_cells=min_spots)
+    return adata

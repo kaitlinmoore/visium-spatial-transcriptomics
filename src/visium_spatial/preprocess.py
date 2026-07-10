@@ -24,11 +24,26 @@ from __future__ import annotations
 def normalize(adata, *, target_sum: float | None = None):
     """Library-size normalize then ``log1p`` (in place). Stores raw counts first.
 
-    ``target_sum=None`` uses the median library size (scanpy default).
+    ``target_sum=None`` uses the median library size (scanpy default). The
+    pre-normalization counts are kept in ``layers["counts"]`` so the raw matrix
+    (needed for e.g. Moran's I on counts, or re-normalization) is never lost.
     """
-    raise NotImplementedError
+    import scanpy as sc
+
+    adata.layers["counts"] = adata.X.copy()
+    sc.pp.normalize_total(adata, target_sum=target_sum)
+    sc.pp.log1p(adata)
+    return adata
 
 
 def select_hvg(adata, *, n_top_genes: int = 2000):
-    """Flag highly variable genes for the clustering path (does not subset)."""
-    raise NotImplementedError
+    """Flag highly variable genes for the clustering path (does not subset).
+
+    ``n_top_genes`` is capped at the number of genes present so it is safe on
+    small inputs. Sets ``var["highly_variable"]``.
+    """
+    import scanpy as sc
+
+    n = min(n_top_genes, adata.n_vars)
+    sc.pp.highly_variable_genes(adata, n_top_genes=n)
+    return adata
