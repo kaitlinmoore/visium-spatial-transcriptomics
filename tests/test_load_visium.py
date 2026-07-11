@@ -99,3 +99,19 @@ def test_load_visium_missing_dir_raises():
 
     with pytest.raises(FileNotFoundError):
         load_visium("does/not/exist")
+
+
+def test_load_visium_dataset_acquires_then_reads_cached_dir(monkeypatch, tmp_path):
+    """Acquire via squidpy, then read the cached <base>/<sample_id> directory with
+    our load_visium — verified by monkeypatch, no real download."""
+    import squidpy as sq
+
+    from visium_spatial import load_visium as lv
+
+    calls = {}
+    monkeypatch.setattr(sq.datasets, "visium", lambda sid, base_dir=None: calls.update(sid=sid, base_dir=base_dir))
+    monkeypatch.setattr(lv, "load_visium", lambda p: ("READ", str(p)))
+
+    result = lv.load_visium_dataset("V1_Human_Lymph_Node", base_dir=tmp_path)
+    assert calls == {"sid": "V1_Human_Lymph_Node", "base_dir": tmp_path}
+    assert result == ("READ", str(tmp_path / "V1_Human_Lymph_Node"))

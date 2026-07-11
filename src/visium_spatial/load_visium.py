@@ -52,11 +52,56 @@ def load_visium(outs_dir: str | Path, *, count_file: str = "filtered_feature_bc_
         raise FileNotFoundError(f"Space Ranger outs dir not found: {outs_dir}")
 
     adata = sq.read.visium(outs_dir, counts_file=count_file)
+
+    # Gene-ID hygiene: 10x symbol indices are NOT unique (several Ensembl IDs can
+    # share a symbol). Left alone, selecting a gene by symbol later either crashes
+    # (non-unique index) or silently picks an arbitrary duplicate. Make names
+    # unique and record how many were disambiguated — a reported metric, not a
+    # silent fix (CLAUDE.md gene-ID rule). Stable Ensembl IDs remain in
+    # var["gene_ids"].
+    n_dup = int(adata.var_names.duplicated().sum())
+    adata.var_names_make_unique()
+    adata.uns["n_duplicate_gene_symbols"] = n_dup
+
     # Record the coordinate frame explicitly (the one irreversible fact), then
     # verify it before returning so a malformed read fails here, not downstream.
     adata.uns["spatial_frame"] = SPATIAL_FRAME
     assert_spatial_frame(adata)
     return adata
+
+
+def load_visium_dataset(sample_id: str = "V1_Human_Lymph_Node", *, base_dir: str | Path | None = None):
+    """Acquire a 10x Visium sample via squidpy, then read the cached directory
+    with :func:`load_visium` so the reader + coordinate/scalefactor checks stay
+    owned code (rather than accepting squidpy's pre-assembled AnnData directly).
+
+    ``sq.datasets.visium`` downloads and extracts the raw Space Ranger files
+    (``filtered_feature_bc_matrix.h5`` + ``spatial/``) into
+    ``<base_dir or scanpy.settings.datasetdir>/visium/<sample_id>`` — cached, so
+    reruns do not re-download — and we re-read that same directory. The returned
+    AnnData has the coordinate frame stamped and asserted.
+
+    Parameters
+    ----------
+    sample_id:
+        A squidpy Visium sample name, e.g. the project default
+        ``"V1_Human_Lymph_Node"``.
+    base_dir:
+        Download root. ``None`` uses ``scanpy.settings.datasetdir`` (``data/``).
+
+    Returns
+    -------
+    anndata.AnnData
+    """
+    import squidpy as sq
+    from scanpy import settings
+
+    # Download/cache the Space Ranger files (we ignore the returned AnnData and
+    # re-read the directory ourselves below).
+    sq.datasets.visium(sample_id, base_dir=base_dir)
+
+    root = Path(base_dir) if base_dir is not None else Path(settings.datasetdir) / "visium"
+    return load_visium(root / sample_id)
 
 
 def extract_scalefactors(adata) -> dict:

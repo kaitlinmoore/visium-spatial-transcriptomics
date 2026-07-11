@@ -20,15 +20,16 @@ Single Visium section. This is a coordinate grid, not a sequence-alignment probl
 |---|---|
 | Dataset ID | `V1_Human_Lymph_Node` |
 | Assay | 10x Visium (spatial gene expression) |
-| Source | `squidpy.datasets.visium` / 10x Genomics datasets portal — `<URL>` |
-| Space Ranger version | `<...>` |
-| Reference transcriptome | `<...>` (the 10x reference the counts were generated against, e.g. a GRCh38 build — provenance only; the analysis does not use it) |
-| Spots (post-QC) | `<...>` |
-| Genes | `<...>` |
+| Source | `sq.datasets.visium("V1_Human_Lymph_Node")` → https://exampledata.scverse.org/squidpy/10x_genomics/V1_Human_Lymph_Node/ (scverse mirror of 10x Genomics' "Human Lymph Node" section) |
+| Space Ranger version | `spaceranger-1.1.0` (from the matrix `.h5` `software_version`); chemistry Spatial 3' v1 |
+| Reference transcriptome | `GRCh38` (the 10x reference the counts were generated against — provenance only; the analysis does not use it) |
+| Access date | 2026-07-10 |
+| Spots | 4,035 raw → 4,025 post-QC (defaults: `min_counts=500`, `min_genes=250`, `max_pct_mito=30`) |
+| Genes | 36,601 raw → 19,812 post-QC (`min_spots=10`) |
 | Images | `tissue_hires_image.png`, `tissue_lowres_image.png`, `scalefactors_json.json` |
 | Access date | `<...>` |
 
-A pre-processed built-in dataset, `squidpy.datasets.visium_hne_adata()`, is wired in as a **smoke-test path** so the pipeline runs end to end on a fresh clone before the lymph node section is downloaded (see *How to run*).
+The committed synthetic fixture (`tests/fixtures/synthetic.py`, `make_synthetic_visium`) is wired in as a **smoke-test path** so the pipeline runs end to end on a fresh clone with **no download**, before the lymph node section is fetched (see *How to run*). To acquire the real section, `load_visium.load_visium_dataset("V1_Human_Lymph_Node")` downloads via squidpy into `data/visium/…` (gitignored) and re-reads it through the owned `load_visium`.
 
 ## Environment & setup
 
@@ -75,7 +76,7 @@ visium-spatial-statistics/
 
 ## How to run
 
-**1. Smoke test — no download.** Runs the graph build and global Moran's I against the built-in dataset, to confirm the environment and the owned code work on a fresh clone. The first cell of `notebooks/eda.ipynb` loads `visium_hne_adata()` and passes it through `visium_spatial.build_graph` and `visium_spatial.global_autocorr`.
+**1. Smoke test — no download.** Each notebook's first section runs the real package code against the committed synthetic fixture (`make_synthetic_visium`), to confirm the environment and the owned code work on a fresh clone. In `notebooks/eda.ipynb` this builds the graph, asserts the hex neighborhood, and ranks by global Moran's I via `visium_spatial.build_graph` and `visium_spatial.global_autocorr`.
 
 **2. Real analysis — after downloading the lymph node section** (see *Data* and the action items in the planning package):
 
@@ -103,7 +104,12 @@ Full rationale, the spatial-graph-as-weights-matrix crossover, the validation, a
 
 ## Results
 
-_Populated after the local runs._ This section will carry: the QC and coordinate/scalefactor sanity summary; the global Moran's I ranking with the from-scratch validation note; the LISA and Gi\* hotspot maps overlaid on the H&E; the compartment-recovery check against markers; and the neighborhood-enrichment adjacency read-out.
+Run on `V1_Human_Lymph_Node` (Space Ranger 1.1.0, GRCh38), seed 0. Reproduce via `notebooks/autocorr.ipynb`.
+
+- **Data & QC.** 4,035 → 4,025 spots and 36,601 → 19,812 genes after QC (`min_counts=500`, `min_genes=250`, `max_pct_mito=30`, `min_spots=10`); 10 duplicate gene symbols disambiguated; 3 boundary spots are isolates (handled, not dropped).
+- **Global validation.** The from-scratch Moran's I reproduces squidpy and esda on the shared row-standardized weights (e.g. `GENE_GRAD` synthetic parity `0.637977`); on the section, compartment markers rank as strongly spatially structured (`CCL21` I=0.72, `CXCL13` 0.52, `CR2` 0.58, `MS4A1` 0.48; all q≈0).
+- **Compartment recovery (the headline).** High-High LISA hotspots for canonical markers form a clean block structure: **mean Jaccard 0.31 within-compartment vs 0.03 between**, with **B-follicle and T-zone hotspots completely segregated (0.00)** and germinal-center markers nested in the follicle block — matching known follicle-vs-paracortex architecture. See `docs/methodology.md` §8 for the marker panel, sources, and caveats.
+- **Hotspot overlays** of representative markers on the aligned H&E (`CXCL13` follicle vs `CCL21` T-zone) and the **neighborhood-enrichment** adjacency read-out are produced in the notebooks.
 
 ## Limitations & scope
 

@@ -121,12 +121,38 @@
 - _Alternatives:_ Bonferroni (too conservative); dropping isolates (dishonest —
   silently changes `n` and the tissue footprint).
 
-## 8. Validation against tissue architecture — **[awaits real section]**
-- Planned qualitative check: whether High-High LISA clusters for known markers
-  recover known immune compartments (B-cell follicle markers → follicles; T-zone
-  markers → paracortex). Cite marker sources. This is a qualitative validation,
-  not a benchmark, and **has not been run** — it requires the real lymph-node
-  section. On the synthetic fixture the analog is patch recovery (§6).
+## 8. Validation against tissue architecture — **[verified on real section]**
+- No ground-truth compartment annotation ships with the section, so "recovery"
+  is assessed as **concordance of High-High LISA hotspots** (`compartments.py`):
+  for each marker, the significant HH spot set (isolate-masked, FDR-corrected);
+  then the pairwise Jaccard overlap of those sets. High *within*-compartment and
+  low *between*-compartment overlap — a block structure — is the evidence.
+- **Marker panel** (canonical, with sources):
+  - *B-cell follicle:* `MS4A1`/CD20 (pan-B), `CD79A`, `CR2`/CD21 (follicular
+    dendritic cells), `CXCL13` (follicle-organizing chemokine, attracts CXCR5⁺
+    B cells).
+  - *Germinal center:* `BCL6` (master GC transcription factor), `AICDA`/AID
+    (somatic hypermutation), `RGS13` (GC-restricted).
+  - *T-zone / paracortex:* `CD3D`, `CD3E` (pan-T), `CCL19`, `CCL21` (T-zone
+    chemokines, produced by fibroblastic reticular cells, attract CCR7⁺ T cells).
+  - Sources: lymphoid chemokine organization (Cyster/Förster lineage reviews,
+    *J. Immunol.* 175:4904; ScienceDirect CXCL13 overview); GC transcriptional
+    program (*Front. Immunol.* 2018, PMC6134015; *PLoS ONE* RGS13); CD21/CR2 as
+    a follicular-dendritic-cell marker (PMC6610797). Full URLs in the notebook.
+- **Result (V1_Human_Lymph_Node, seed 0, FDR α=0.05):** mean Jaccard **0.31
+  within-compartment vs 0.03 between** (~10×). B-follicle and T-zone HH hotspots
+  are **completely segregated (Jaccard 0.00 on every pair)** — matching the
+  distinct follicle-vs-paracortex architecture. Same-compartment markers are
+  concordant (T-zone CD3D↔CD3E 0.49; follicle MS4A1↔CXCL13 0.37). Germinal-center
+  markers correlate with the follicle block (RGS13↔CR2 0.40) and are 0.00 with
+  the T-zone — biologically correct, as GCs sit *inside* follicles.
+- **Honest caveats:** within-compartment overlap is partly trivial (markers are
+  co-expressed in the same region), so the load-bearing signal is the
+  between-compartment *segregation*, not the within-compartment overlap; each
+  spot is multiple cells, so "compartment" is a dominant-signal notion, not a
+  cell-level label; and this is one section, seed-fixed, qualitative-structural
+  validation — not a benchmark. Overlay orientation against the real H&E is a
+  visual check to be confirmed in the notebook.
 
 ## 9. Secondary read-out: neighborhood enrichment
 - `cluster.leiden_clusters` runs Leiden on the **expression** kNN graph
