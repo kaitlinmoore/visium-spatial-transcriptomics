@@ -109,7 +109,8 @@ Run on `V1_Human_Lymph_Node` (Space Ranger 1.1.0, GRCh38), seed 0. Reproduce via
 - **Data & QC.** 4,035 → 4,025 spots and 36,601 → 19,812 genes after QC (`min_counts=500`, `min_genes=250`, `max_pct_mito=30`, `min_spots=10`); 10 duplicate gene symbols disambiguated; 3 boundary spots are isolates (handled, not dropped).
 - **Global validation.** The from-scratch Moran's I reproduces squidpy and esda on the shared row-standardized weights (e.g. `GENE_GRAD` synthetic parity `0.637977`); on the section, compartment markers rank as strongly spatially structured (`CCL21` I=0.72, `CXCL13` 0.52, `CR2` 0.58, `MS4A1` 0.48; all q≈0).
 - **Compartment recovery (the headline).** High-High LISA hotspots for canonical markers form a clean block structure: **mean Jaccard 0.31 within-compartment vs 0.03 between**, with **B-follicle and T-zone hotspots completely segregated (0.00)** and germinal-center markers nested in the follicle block — matching known follicle-vs-paracortex architecture. See `docs/methodology.md` §8 for the marker panel, sources, and caveats.
-- **Hotspot overlays** of representative markers on the aligned H&E (`CXCL13` follicle vs `CCL21` T-zone) and the **neighborhood-enrichment** adjacency read-out are produced in the notebooks.
+- **Hotspot overlays** of representative markers on the aligned H&E (`CXCL13` follicle vs `CCL21` T-zone) are produced in `autocorr.ipynb`.
+- **Neighborhood enrichment (corroborating read-out).** 11 Leiden clusters; the B-like (`MS4A1`) and T-like (`CD3D`) clusters are each self-enriched (spatial-neighborhood z ≈ +29 / +70) and mutually depleted (cross z ≈ −11.6) — an independent method recovering the same follicle-vs-paracortex segregation. See `nhood.ipynb`.
 
 ## Limitations & scope
 

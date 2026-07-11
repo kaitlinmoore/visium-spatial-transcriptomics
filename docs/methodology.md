@@ -154,14 +154,24 @@
   validation — not a benchmark. Overlay orientation against the real H&E is a
   visual check to be confirmed in the notebook.
 
-## 9. Secondary read-out: neighborhood enrichment
-- `cluster.leiden_clusters` runs Leiden on the **expression** kNN graph
+## 9. Secondary read-out: neighborhood enrichment — **[verified on real section]**
+- `cluster.leiden_clusters` runs Leiden on the **expression** PCA/kNN graph
   (`sc.pp.neighbors`) — a separate object from the spatial weights graph;
   conflating the two is a classic spatial-omics error. `sq.gr.nhood_enrichment`
   across those clusters then asks whether transcriptomic clusters are spatially
-  adjacent. **[verified on synthetic]** the chain runs and produces a cluster ×
-  cluster z-score matrix (`n_jobs=1` sidesteps a Windows multiprocessing-spawn
-  issue).
+  adjacent (`n_jobs=1` sidesteps a Windows multiprocessing-spawn issue).
+- **Result (V1_Human_Lymph_Node, res=1.0, seed 0):** 11 Leiden clusters. Annotated
+  by mean marker expression, the T-like cluster (max `CD3D`, also high `CCL21`) and
+  the B-like cluster (max `MS4A1`, high `CXCL13`) are each strongly
+  **self-enriched** (spatial-neighbourhood z ≈ +70 and +29) and **mutually
+  depleted** (cross z ≈ **−11.6**, i.e. less adjacent than chance). An independent
+  method — expression clustering + spatial adjacency, not marker LISA — recovers
+  the same follicle-vs-paracortex segregation as §8, which is the point of running
+  it as a corroborating read-out.
+- **Caveat:** Visium spots are multi-cell mixtures, so cluster→compartment
+  annotation is approximate — the extreme clusters annotate cleanly, the middle
+  ones (mixed B/T signal) less so; the segregation of the *extremes* is the
+  robust part.
 
 ## 10. Limitations
 - Single section; spot-level (multi-cell) resolution; recovery is qualitative;
