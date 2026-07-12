@@ -122,37 +122,38 @@
   silently changes `n` and the tissue footprint).
 
 ## 8. Validation against tissue architecture — **[verified on real section]**
-- No ground-truth compartment annotation ships with the section, so "recovery"
+- No compartment annotation ships in the raw section download, so "recovery"
   is assessed as **concordance of High-High LISA hotspots** (`compartments.py`):
   for each marker, the significant HH spot set (isolate-masked, FDR-corrected);
   then the pairwise Jaccard overlap of those sets. High *within*-compartment and
   low *between*-compartment overlap — a block structure — is the evidence.
-- **Marker panel** (canonical, with sources):
-  - *B-cell follicle:* `MS4A1`/CD20 (pan-B), `CD79A`, `CR2`/CD21 (follicular
-    dendritic cells), `CXCL13` (follicle-organizing chemokine, attracts CXCR5⁺
-    B cells).
-  - *Germinal center:* `BCL6` (master GC transcription factor), `AICDA`/AID
-    (somatic hypermutation), `RGS13` (GC-restricted).
-  - *T-zone / paracortex:* `CD3D`, `CD3E` (pan-T), `CCL19`, `CCL21` (T-zone
-    chemokines, produced by fibroblastic reticular cells, attract CCR7⁺ T cells).
-  - Sources: lymphoid chemokine organization (Cyster/Förster lineage reviews,
-    *J. Immunol.* 175:4904; ScienceDirect CXCL13 overview); GC transcriptional
-    program (*Front. Immunol.* 2018, PMC6134015; *PLoS ONE* RGS13); CD21/CR2 as
-    a follicular-dendritic-cell marker (PMC6610797). Full URLs in the notebook.
-- **Result (V1_Human_Lymph_Node, seed 0, FDR α=0.05):** mean Jaccard **0.31
-  within-compartment vs 0.03 between** (~10×). B-follicle and T-zone HH hotspots
-  are **completely segregated (Jaccard 0.00 on every pair)** — matching the
-  distinct follicle-vs-paracortex architecture. Same-compartment markers are
-  concordant (T-zone CD3D↔CD3E 0.49; follicle MS4A1↔CXCL13 0.37). Germinal-center
-  markers correlate with the follicle block (RGS13↔CR2 0.40) and are 0.00 with
-  the T-zone — biologically correct, as GCs sit *inside* follicles.
-- **Honest caveats:** within-compartment overlap is partly trivial (markers are
-  co-expressed in the same region), so the load-bearing signal is the
-  between-compartment *segregation*, not the within-compartment overlap; each
-  spot is multiple cells, so "compartment" is a dominant-signal notion, not a
-  cell-level label; and this is one section, seed-fixed, qualitative-structural
-  validation — not a benchmark. Overlay orientation against the real H&E is a
-  visual check to be confirmed in the notebook.
+- **Marker panel** — from Grasso et al. 2025 (*Eur. J. Immunol.*,
+  10.1002/eji.202451218; PMC12154172), a single published human-lymph-node
+  marker→domain reference rather than an assembled list. Domains and markers (all
+  verified present and spatially autocorrelated here): T-zone `TRBC1`/`TRAC`;
+  follicle `FDCSP`/`CR2`; germinal center `BCL6`/`MYBL1`; medulla `IGHG1`/`IGHG2`;
+  B–T interface `THY1`; lymphatic `LYVE1`/`PROX1`; blood vessel `VWF`/`PECAM1`.
+- **Result (V1_Human_Lymph_Node, seed 0, FDR α=0.05):** the four *compact*
+  compartments form a clean block structure — mean Jaccard **0.49 within vs 0.02
+  between** (follicle, germinal center, T-zone, medulla), each block completely
+  segregated from the others (0.00). Same-compartment markers concordant (T-zone
+  TRBC1↔TRAC 0.60; medulla IGHG1↔IGHG2 0.72; follicle FDCSP↔CR2 0.44). GC markers
+  correlate with the follicle block (CR2↔MYBL1 0.24) and are 0.00 with T-zone and
+  medulla — GCs nested inside follicles. The **thin/linear domains do not form HH
+  hotspots**: blood vessels give 0 HH spots, lymphatics are incoherent (LYVE1 132 /
+  PROX1 2 spots, mutual 0.01), the B–T interface (`THY1`) yields no block — an
+  honest limit of a compartment-*hotspot* method (it captures compact regions, not
+  thin structures), not a failure.
+- **Honest caveats & non-circularity.** This concordance is markers-vs-markers:
+  same-compartment overlap is partly trivial (co-expression), so the load-bearing
+  signal is between-compartment *segregation*. Each spot is multiple cells, so
+  "compartment" is a dominant-signal notion, not a cell-level label; and this is
+  one section, seed-fixed, structural validation — *not* an external benchmark.
+  A genuinely non-circular check exists and is the identified next step:
+  Chrysalis/cell2location provide **pathologist H&E germinal-centre annotations on
+  this exact section**, enabling an inside/outside-GC differential for the
+  `BCL6`/`MYBL1` hotspots. Overlay orientation against the real H&E remains a
+  visual check in the notebook.
 
 ## 9. Secondary read-out: neighborhood enrichment — **[verified on real section]**
 - `cluster.leiden_clusters` runs Leiden on the **expression** PCA/kNN graph

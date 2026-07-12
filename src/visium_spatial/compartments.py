@@ -23,6 +23,27 @@ from __future__ import annotations
 
 import numpy as np
 
+# Published lymph-node marker -> tissue-domain panel, used instead of an
+# ad-hoc marker list so the segregation/nesting argument rests on a citable
+# source (see docs/methodology.md §8 for the reference). Genes verified present
+# and spatially autocorrelated in V1_Human_Lymph_Node. The four *compact*
+# compartments (follicle, germinal_center, T-zone, medulla) are where HH-hotspot
+# concordance is meaningful; the thin/linear domains (lymphatic, blood_vessel)
+# and the transitional B-T interface are included for completeness but do not
+# form clean HH blocks.
+LYMPH_NODE_MARKERS = {
+    "T-zone": ["TRBC1", "TRAC"],
+    "follicle": ["FDCSP", "CR2"],
+    "germinal_center": ["BCL6", "MYBL1"],
+    "B-T_interface": ["THY1"],
+    "medulla": ["IGHG1", "IGHG2"],
+    "lymphatic": ["LYVE1", "PROX1"],
+    "blood_vessel": ["VWF", "PECAM1"],
+}
+
+# Compartments compact enough for the HH-hotspot concordance test to be meaningful.
+CORE_COMPARTMENTS = ("follicle", "germinal_center", "T-zone", "medulla")
+
 
 def hh_spot_set(local_moran_result, W, *, p_thresh: float = 0.05) -> set[int]:
     """Indices of significant High-High spots for one gene.
