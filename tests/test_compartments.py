@@ -33,6 +33,26 @@ def test_concordance_matrix_block_structure():
     assert M.shape == (3, 3)
 
 
+def test_annotation_auc():
+    from visium_spatial.compartments import annotation_auc
+
+    # perfectly separating score -> AUC 1; reversed -> 0; constant (all ties) -> 0.5
+    assert annotation_auc([1, 2, 3, 4], [0, 0, 1, 1]) == pytest.approx(1.0)
+    assert annotation_auc([4, 3, 2, 1], [0, 0, 1, 1]) == pytest.approx(0.0)
+    assert annotation_auc([1, 1, 1, 1], [0, 0, 1, 1]) == pytest.approx(0.5)
+    assert np.isnan(annotation_auc([1, 2, 3], [0, 0, 0]))  # one class empty
+
+
+def test_hotspot_enrichment():
+    from visium_spatial.compartments import hotspot_enrichment
+
+    # 3 hotspots: 2 inside the annotation, 1 outside; annotation has 2 spots total
+    r = hotspot_enrichment([1, 1, 1, 0, 0], [1, 1, 0, 0, 0])
+    assert r["tp"] == 2 and r["fp"] == 1 and r["fn"] == 0
+    assert r["precision"] == pytest.approx(2 / 3)
+    assert r["recall"] == pytest.approx(1.0)
+
+
 def test_hh_spot_set_recovers_patch(adata, hh_indices):
     """On the planted GENE_HH patch, the significant HH spots are a subset of the
     planted patch (no HH called outside it)."""

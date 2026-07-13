@@ -144,16 +144,25 @@
   PROX1 2 spots, mutual 0.01), the B–T interface (`THY1`) yields no block — an
   honest limit of a compartment-*hotspot* method (it captures compact regions, not
   thin structures), not a failure.
-- **Honest caveats & non-circularity.** This concordance is markers-vs-markers:
-  same-compartment overlap is partly trivial (co-expression), so the load-bearing
-  signal is between-compartment *segregation*. Each spot is multiple cells, so
-  "compartment" is a dominant-signal notion, not a cell-level label; and this is
-  one section, seed-fixed, structural validation — *not* an external benchmark.
-  A genuinely non-circular check exists and is the identified next step:
-  Chrysalis/cell2location provide **pathologist H&E germinal-centre annotations on
-  this exact section**, enabling an inside/outside-GC differential for the
-  `BCL6`/`MYBL1` hotspots. Overlay orientation against the real H&E remains a
-  visual check in the notebook.
+- **Honest caveats.** This concordance is markers-vs-markers: same-compartment
+  overlap is partly trivial (co-expression), so the load-bearing signal is
+  between-compartment *segregation*. Each spot is multiple cells, so "compartment"
+  is a dominant-signal notion, not a cell-level label; and it is one section,
+  seed-fixed. That is why the external benchmark below matters.
+- **External benchmark — [verified, non-circular].** Our GC-marker LISA hotspots
+  are scored against `germ_center`, a **morphology-drawn germinal-centre
+  annotation** (368 spots) from the cell2location/Chrysalis processing of this
+  exact section (Zenodo 8247779). It is non-circular w.r.t. our method: spatially
+  contiguous (all 368 GC spots adjoin another) and *not* a threshold of GC
+  cell-type abundance (abundance predicts it at AUC 0.97 but with real overlap —
+  36 non-GC spots outrank the median GC spot). Barcodes join exactly (all 3,985
+  annotated spots are in our data). Result (`annotation_auc` /
+  `hotspot_enrichment`): combined GC-score **AUC 0.925** (RGS13 0.92, MYBL1 0.85,
+  BCL6 0.82, AICDA 0.67); the BCL6/MYBL1 HH set is **92% precise** (154 of 168
+  spots inside annotated GCs; odds ratio 185) at **0.42 recall** — FDR-gating
+  captures GC *cores*, so precision is high and recall moderate (AUC, being
+  threshold-free, sidesteps this). This is the project's strongest, non-circular
+  validation. Overlay orientation against the real H&E remains a notebook check.
 
 ## 9. Secondary read-out: neighborhood enrichment — **[verified on real section]**
 - `cluster.leiden_clusters` runs Leiden on the **expression** PCA/kNN graph

@@ -73,6 +73,45 @@ def jaccard(a, b) -> float:
     return len(a & b) / len(union)
 
 
+def annotation_auc(score, labels) -> float:
+    """ROC-AUC of a continuous per-spot ``score`` at discriminating a binary
+    ``labels`` annotation (0/1). Rank-based (= P(score[pos] > score[neg]), ties
+    counted as 0.5); returns NaN if either class is empty.
+
+    This is the non-circular benchmark metric: ``score`` is our LISA statistic,
+    ``labels`` is an external (e.g. pathologist germinal-centre) annotation.
+    """
+    from scipy.stats import rankdata
+
+    score = np.asarray(score, dtype=float)
+    labels = np.asarray(labels).astype(int)
+    n_pos = int((labels == 1).sum())
+    n_neg = int((labels == 0).sum())
+    if n_pos == 0 or n_neg == 0:
+        return float("nan")
+    ranks = rankdata(score)
+    return float((ranks[labels == 1].sum() - n_pos * (n_pos + 1) / 2) / (n_pos * n_neg))
+
+
+def hotspot_enrichment(hotspot_mask, labels) -> dict:
+    """Precision / recall / odds ratio of a binary ``hotspot_mask`` against a
+    binary ``labels`` annotation (both length-n). Precision = fraction of called
+    hotspots inside the annotation; recall = fraction of the annotation recovered.
+    """
+    h = np.asarray(hotspot_mask).astype(bool)
+    y = np.asarray(labels).astype(bool)
+    tp = int((h & y).sum())
+    fp = int((h & ~y).sum())
+    fn = int((~h & y).sum())
+    tn = int((~h & ~y).sum())
+    return {
+        "tp": tp, "fp": fp, "fn": fn, "tn": tn,
+        "precision": tp / (tp + fp) if tp + fp else float("nan"),
+        "recall": tp / (tp + fn) if tp + fn else float("nan"),
+        "odds_ratio": (tp * tn) / (fp * fn) if fp * fn else float("inf"),
+    }
+
+
 def concordance_matrix(hh_sets: dict[str, set[int]]):
     """Pairwise Jaccard overlap of HH spot sets.
 
