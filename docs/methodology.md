@@ -31,8 +31,10 @@
   with the scaled image is a silent misalignment (the tissue-image analog of a
   CRS/projection mismatch). **[verified on synthetic]** a test asserts the
   plotted scatter offsets equal the *scaled* coordinates, so plotting raw
-  full-res coords would fail loudly. Orientation against a *real* H&E is
-  **[awaits real section]** — the synthetic test uses a dummy image array.
+  full-res coords would fail loudly. Overlays now render on the *real* hires H&E
+  in the notebook; only the **visual** orientation-vs-histology check is pending
+  (the automated test uses a dummy image array, so it verifies the scalefactor
+  math, not visual registration).
 
 ## 3. The spatial weights graph (the load-bearing choice)
 - One graph, built once with `sq.gr.spatial_neighbors(coord_type="grid",
@@ -184,12 +186,13 @@
   robust part.
 
 ## 10. Limitations
-- Single section; spot-level (multi-cell) resolution; recovery is qualitative;
-  no image-feature analysis in v1 (the H&E is a registered backdrop only).
-- Everything above is validated on a **synthetic** fixture. QC thresholds, HVG
-  selection, cluster granularity, overlay orientation against a real H&E, and the
-  compartment-recovery validation are **[awaits real section]** — the toy's 3
-  genes / 49 spots exercise mechanics, not real-data calibration.
+- Single section; spot-level (multi-cell) resolution; no image-feature analysis
+  in v1 (the H&E is a registered backdrop only).
+- The statistics run on the real section and compartment recovery is validated
+  there (§8, including the external germinal-centre benchmark). What remains
+  **uncalibrated / not eyeballed on real data**: QC thresholds and HVG/cluster
+  granularity use defaults; and overlay orientation against the real H&E renders
+  but has not been visually confirmed against the histology.
 - BH-FDR on small spot counts is very stringent (§7); interpret local
   significance on the real section with the spot count in mind.
 - squidpy `spatial_neighbors` is deprecated in the pinned version (§3).

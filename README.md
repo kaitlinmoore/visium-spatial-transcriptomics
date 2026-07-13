@@ -107,17 +107,17 @@ Full rationale, the spatial-graph-as-weights-matrix crossover, the validation, a
 Run on `V1_Human_Lymph_Node` (Space Ranger 1.1.0, GRCh38), seed 0. Reproduce via `notebooks/autocorr.ipynb`.
 
 - **Data & QC.** 4,035 → 4,025 spots and 36,601 → 19,812 genes after QC (`min_counts=500`, `min_genes=250`, `max_pct_mito=30`, `min_spots=10`); 10 duplicate gene symbols disambiguated; 3 boundary spots are isolates (handled, not dropped).
-- **Global validation.** The from-scratch Moran's I reproduces squidpy and esda on the shared row-standardized weights (e.g. `GENE_GRAD` synthetic parity `0.637977`); on the section, compartment markers rank as strongly spatially structured (`CCL21` I=0.72, `CXCL13` 0.52, `CR2` 0.58, `MS4A1` 0.48; all q≈0).
+- **Global validation.** The from-scratch Moran's I reproduces squidpy and esda on the shared row-standardized weights (e.g. `GENE_GRAD` synthetic parity `0.637977`); on the section, the Grasso-panel compartment markers rank as strongly spatially structured (`IGHG1` I=0.73, `FDCSP` 0.70, `CR2` 0.58, `TRBC1` 0.36; all q≈0).
 - **Compartment recovery (the headline).** Using the published marker→domain panel (Grasso et al. 2025, *Eur. J. Immunol.*), High-High LISA hotspots for the four compact compartments form a clean block structure: **mean Jaccard 0.49 within vs 0.02 between** (follicle, germinal center, T-zone, medulla), each block completely segregated (0.00), with germinal centers nested in follicles — matching known architecture. Thin structures (blood/lymphatic vessels, the B–T interface) do not form hotspots — an honest limit of a compartment-hotspot method. See `docs/methodology.md` §8.
 - **External benchmark (non-circular, the strongest result).** Scored against `germ_center`, a morphology-drawn germinal-centre annotation (368 spots, cell2location/Chrysalis processing of this section) that is spatially contiguous and *not* an abundance threshold: our GC-marker LISA hotspots recover it at **combined AUC 0.925**, and the BCL6/MYBL1 hotspot set is **92% precise** (154/168 spots inside annotated GCs, odds ratio 185) at 0.42 recall (FDR-gating captures GC cores). An expression-derived spatial statistic recovering an independently drawn morphological annotation.
-- **Hotspot overlays** of representative markers on the aligned H&E (`CXCL13` follicle vs `CCL21` T-zone) are produced in `autocorr.ipynb`.
+- **Hotspot overlays** on the aligned H&E — representative markers (`FDCSP` follicle vs `TRBC1` T-zone) and our GC hotspots vs the annotated germinal centres — are produced in `autocorr.ipynb`.
 - **Neighborhood enrichment (corroborating read-out).** 11 Leiden clusters; the B-like (`MS4A1`) and T-like (`CD3D`) clusters are each self-enriched (spatial-neighborhood z ≈ +29 / +70) and mutually depleted (cross z ≈ −11.6) — an independent method recovering the same follicle-vs-paracortex segregation. See `nhood.ipynb`.
 
 ## Limitations & scope
 
 - **Single section.** Cross-section reproducibility (running a second lymph node slide and checking whether the same-marker hotspots reproduce) is a stretch, not part of v1.
 - **Spot-level resolution.** Visium spots are multi-cell; nothing here is single-cell, and "compartment" is a spatial-domain notion, not a segmentation.
-- **Recovery is qualitative validation.** The compartment-recovery claim is checked against literature markers, not against a segmentation ground truth — it is evidence the statistics behave, not a benchmarked accuracy.
+- **Recovery is validated, with caveats.** Beyond internal marker concordance, the GC hotspots are benchmarked against an external morphology-drawn annotation (AUC 0.925). But that annotation still correlates with GC expression (not a fully independent segmentation), recall is moderate (0.42 — GC cores, not full extents), and it is a single section.
 - **No image analysis in v1.** The H&E is a backdrop; morphology features are a deferred stretch.
 
 ## License

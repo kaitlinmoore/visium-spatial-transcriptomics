@@ -1,16 +1,17 @@
 """Quantified compartment-recovery validation.
 
-The section ships with **no ground-truth compartment annotation**, so "recovery"
-cannot be a supervised accuracy. It is assessed as *concordance* of High-High
-LISA hotspots:
+Recovery is validated two ways, increasing in strength:
 
-- markers of the **same** compartment should share HH spots (they are co-expressed
-  in the same tissue region);
-- markers of **different** compartments (B-cell follicle vs T-cell paracortex)
-  should be spatially **segregated** (low HH overlap).
+1. **Concordance** of High-High LISA hotspots (needs no annotation): markers of
+   the **same** compartment should share HH spots (co-expressed in one region);
+   markers of **different** compartments (follicle vs T-cell paracortex) should be
+   spatially **segregated**. A block structure — high within-, low
+   between-compartment Jaccard overlap — is the evidence.
+2. **External benchmark** (`annotation_auc` / `hotspot_enrichment`): score the
+   GC-marker hotspots against a morphology-drawn germinal-centre annotation. This
+   is *non-circular* — the annotation is defined by tissue morphology, not by the
+   expression our statistic reads.
 
-A block structure — high within-compartment, low between-compartment overlap —
-is the evidence that the local statistics recover known lymph-node architecture.
 The overlap is a number (Jaccard of HH spot sets), not an eyeballed overlay.
 
 Honest caveats (see docs/methodology.md §8): within-compartment overlap is partly
